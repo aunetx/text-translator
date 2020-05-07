@@ -1,0 +1,10 @@
+{
+  "code-runner.executorMap": {
+    "rust": "cargo run -- #$fileName"
+  },
+  "files.exclude": {
+    ".vscode": true,
+    "target": true,
+    ".gitignore": true
+  }
+}
