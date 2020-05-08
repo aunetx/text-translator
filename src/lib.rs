@@ -23,6 +23,8 @@ pub enum Error {
     NoApiKeySet,
     /// Error parsing query to a valid URI
     CouldNotParseUri(String),
+    /// Error executing `tokio::runtime::Runtime::new()`
+    FailedToCreateTokioRuntime,
     /// Yandex API error
     YandexAPIError(api::YandexError),
 }

@@ -63,9 +63,10 @@ impl<'a> Api for Yandex<'a> {
             encode(text.as_str())
         );
 
-        println!("QUERY = {}", query);
-
-        let mut runtime = Runtime::new().expect("Failed to create Tokio runtime");
+        let mut runtime = match Runtime::new() {
+            Ok(res) => res,
+            Err(_) => return Err(Error::FailedToCreateTokioRuntime),
+        };
 
         let uri = match query.parse::<Uri>() {
             Ok(res) => res,
@@ -87,6 +88,7 @@ async fn get_response(uri: Uri) -> Result<String, Error> {
     //println!("STATUS = {}", res.status());
     //println!("HEADERS = {:#?}", res.headers());
     //println!("BODY = {:#?}", res.body());
+    //println!("JSON BODY = {:#?}", json_body);
 
     match res.status().as_u16() {
         200 => (),
@@ -103,8 +105,6 @@ async fn get_response(uri: Uri) -> Result<String, Error> {
         Ok(res) => res,
         Err(_) => return Err(Error::CouldNotDerializeJson),
     };
-
-    println!("JSON BODY = {:#?}", json_body);
 
     Ok(json_body.get_text())
 }
@@ -130,7 +130,7 @@ pub enum YandexError {
     MaxTextSizeExceeded,
     CouldNotTranslate,
     TranslationDirectionNotSupported,
-    UnknownErrorCode,
+    UnknownErrorCode(u16),
 }
 
 impl ApiError for YandexError {
@@ -143,7 +143,7 @@ impl ApiError for YandexError {
             413 => MaxTextSizeExceeded,
             422 => CouldNotTranslate,
             501 => TranslationDirectionNotSupported,
-            _ => UnknownErrorCode,
+            other => UnknownErrorCode(other),
         }
     }
 }
