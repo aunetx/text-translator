@@ -66,7 +66,7 @@ impl Translator {
             false => Err(Error::TranslateShellProcessError(result.stderr)),
             true => match String::from_utf8(result.stdout) {
                 Ok(res) => Ok(res),
-                Err(err) => Err(Error::CouldNotConvertToUtf8(err)),
+                Err(err) => Err(Error::CouldNotConvertToUtf8String(err)),
             },
         }
     }

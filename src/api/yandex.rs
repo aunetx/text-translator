@@ -1,13 +1,12 @@
-use super::{Api, ApiKey};
-use crate::*;
+use http::uri::Uri;
+use hyper::{body::to_bytes, client::Client};
+use hyper_tls::HttpsConnector;
+use serde::{Deserialize, Serialize};
+use serde_json::from_str;
+use tokio::runtime::Runtime;
+use urlencoding::encode;
 
-// ! to interact with api, use either :
-// !
-// ! yandex_translate_async => async
-// !
-// ! yandex_translate => simpler
-// !
-// ! homemade => more complete, could use one-time api key
+use super::*;
 
 pub struct Yandex<'a> {
     key: Option<&'a str>,
@@ -23,9 +22,11 @@ impl<'a> ApiKey<'a> for Yandex<'a> {
     }
 
     fn get_key(&self) -> Option<&'a str> {
-        self.key.clone()
+        self.key
     }
 }
+
+const BASE_URL: &'static str = "https://translate.yandex.net/api/v1.5/tr.json/";
 
 impl<'a> Api for Yandex<'a> {
     fn new() -> Self {
@@ -38,6 +39,111 @@ impl<'a> Api for Yandex<'a> {
         source_language: InputLanguage,
         target_language: Language,
     ) -> Result<String, Error> {
-        unimplemented!()
+        // get translation direction
+        let translation_languages = match source_language {
+            InputLanguage::Automatic => target_language.to_language_code().to_string(),
+            InputLanguage::Defined(source) => format!(
+                "{}-{}",
+                source.to_language_code(),
+                target_language.to_language_code()
+            ),
+        };
+
+        // build query
+        // TODO verify that text is not too long for Yandex API (10_000 characters)
+        let mut query: String = String::from(BASE_URL);
+        query = format!(
+            "{}translate?key={}&lang={}&text={}",
+            query,
+            match self.key {
+                Some(key) => key,
+                None => return Err(Error::NoApiKeySet),
+            },
+            translation_languages,
+            encode(text.as_str())
+        );
+
+        println!("QUERY = {}", query);
+
+        let mut runtime = Runtime::new().expect("Failed to create Tokio runtime");
+
+        let uri = match query.parse::<Uri>() {
+            Ok(res) => res,
+            Err(_) => return Err(Error::CouldNotParseUri(query)),
+        };
+
+        runtime.block_on(get_response(uri))
+    }
+}
+
+// TODO handle await errors instead of calling `unwrap()`
+async fn get_response(uri: Uri) -> Result<String, Error> {
+    let https = HttpsConnector::new();
+    let client = Client::builder().build::<_, hyper::Body>(https);
+
+    let res = client.get(uri).await.unwrap();
+
+    // TODO log status / headers / body
+    //println!("STATUS = {}", res.status());
+    //println!("HEADERS = {:#?}", res.headers());
+    //println!("BODY = {:#?}", res.body());
+
+    match res.status().as_u16() {
+        200 => (),
+        error => return Err(Error::YandexAPIError(YandexError::from_error_code(error))),
+    };
+
+    let body = to_bytes(res.into_body()).await.unwrap();
+    let body = match std::str::from_utf8(&body) {
+        Ok(res) => res,
+        Err(err) => return Err(Error::CouldNotConvertToUtf8Str(err)),
+    };
+
+    let json_body: Response = match from_str(body) {
+        Ok(res) => res,
+        Err(_) => return Err(Error::CouldNotDerializeJson),
+    };
+
+    println!("JSON BODY = {:#?}", json_body);
+
+    Ok(json_body.get_text())
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Response {
+    code: u16,
+    lang: String,
+    text: Vec<String>,
+}
+
+impl ApiResponse for Response {
+    fn get_text(&self) -> String {
+        self.text.join("\n")
+    }
+}
+
+#[derive(Debug)]
+pub enum YandexError {
+    InvalidAPIKey,
+    BlockedAPIKey,
+    DailyLimitExceeded,
+    MaxTextSizeExceeded,
+    CouldNotTranslate,
+    TranslationDirectionNotSupported,
+    UnknownErrorCode,
+}
+
+impl ApiError for YandexError {
+    fn from_error_code(code: u16) -> Self {
+        use YandexError::*;
+        match code {
+            401 => InvalidAPIKey,
+            402 => BlockedAPIKey,
+            404 => DailyLimitExceeded,
+            413 => MaxTextSizeExceeded,
+            422 => CouldNotTranslate,
+            501 => TranslationDirectionNotSupported,
+            _ => UnknownErrorCode,
+        }
     }
 }

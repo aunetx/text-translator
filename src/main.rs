@@ -6,7 +6,7 @@ const TRANSLATOR_ENGINE: Engine = Engine::Api(api::Translator::Yandex {
     key: YANDEX_API_KEY,
 });
 
-const TO_TRANSLATE: &str = "Hello, my name is Naruto Uzumaki!";
+const TO_TRANSLATE: &str = "Hello, my name is Naruto Uzumaki!\nI love noodles and fights.";
 const SOURCE_LANGUAGE: InputLanguage = InputLanguage::Automatic;
 const TARGET_LANGUAGE: Language = Language::French;
 

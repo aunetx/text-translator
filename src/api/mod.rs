@@ -43,3 +43,11 @@ pub trait ApiKey<'a>: Api + Sized {
 
     fn get_key(&self) -> Option<&'a str>;
 }
+
+pub trait ApiResponse {
+    fn get_text(&self) -> String;
+}
+
+pub trait ApiError {
+    fn from_error_code(code: u16) -> Self;
+}

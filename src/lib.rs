@@ -14,6 +14,15 @@ pub enum Error {
     CouldNotLaunchTranslateShell(String),
     /// Error raised by `trans` returning a non-zero exit code, contains `stderr`.
     TranslateShellProcessError(Vec<u8>),
-    /// Error when trying to convert translation result to utf-8.
-    CouldNotConvertToUtf8(std::string::FromUtf8Error),
+    /// Errors when trying to convert translation result to utf-8.
+    CouldNotConvertToUtf8String(std::string::FromUtf8Error),
+    CouldNotConvertToUtf8Str(std::str::Utf8Error),
+    /// Error when deserializing JSON string
+    CouldNotDerializeJson,
+    /// Error when sending API request : no KEY set
+    NoApiKeySet,
+    /// Error parsing query to a valid URI
+    CouldNotParseUri(String),
+    /// Yandex API error
+    YandexAPIError(api::YandexError),
 }
