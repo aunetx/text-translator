@@ -1,16 +1,16 @@
 use crate::*;
 
 #[derive(Debug)]
-pub enum Engine {
+pub enum Engine<'a> {
     TranslateShell(translate_shell::Translator),
-    Api(api::Translator),
+    Api(api::Translator<'a>),
 }
 
-impl Engine {
+impl<'a> Engine<'a> {
     pub fn translate(
         &self,
         text: String,
-        source_language: LanguageType,
+        source_language: InputLanguage,
         target_language: Language,
     ) -> Result<String, Error> {
         match self {

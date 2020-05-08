@@ -31,7 +31,7 @@ impl Translator {
     pub fn translate(
         &self,
         text: String,
-        source_language: LanguageType,
+        source_language: InputLanguage,
         target_language: Language,
     ) -> Result<String, Error> {
         let mut command = Command::new("trans");
@@ -48,8 +48,8 @@ impl Translator {
         ]);
 
         match source_language {
-            LanguageType::Automatic => (),
-            LanguageType::Defined(language) => {
+            InputLanguage::Automatic => (),
+            InputLanguage::Defined(language) => {
                 command.args(&["-s", language.to_language_code()]);
             }
         };

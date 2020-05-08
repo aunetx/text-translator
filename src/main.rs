@@ -1,12 +1,13 @@
-extern crate futures;
-extern crate tokio;
-extern crate yandex_translate_async;
-
 use gtk_text_translator::*;
 
-const TRANSLATOR_ENGINE: Engine = Engine::TranslateShell(translate_shell::Translator::Google);
+const YANDEX_API_KEY: &str = "hidden";
+
+const TRANSLATOR_ENGINE: Engine = Engine::Api(api::Translator::Yandex {
+    key: YANDEX_API_KEY,
+});
+
 const TO_TRANSLATE: &str = "Hello, my name is Naruto Uzumaki!";
-const SOURCE_LANGUAGE: LanguageType = LanguageType::Automatic;
+const SOURCE_LANGUAGE: InputLanguage = InputLanguage::Automatic;
 const TARGET_LANGUAGE: Language = Language::French;
 
 fn main() {

@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub enum LanguageType {
+pub enum InputLanguage {
     Automatic,
     Defined(Language),
 }
