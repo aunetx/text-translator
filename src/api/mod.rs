@@ -3,10 +3,10 @@ use crate::*;
 mod yandex;
 pub use yandex::*;
 
+/// Lists the differents implemented translators API.
 #[derive(Debug)]
 pub enum Translator<'a> {
     Yandex { key: &'a str },
-    Google,
 }
 
 impl<'a> Translator<'a> {
@@ -20,7 +20,6 @@ impl<'a> Translator<'a> {
             Translator::Yandex { key } => {
                 Yandex::with_key(key.clone()).translate(text, source_language, target_language)
             }
-            _ => unimplemented!(),
         }
     }
 }
@@ -44,10 +43,10 @@ pub trait ApiKey<'a>: Api + Sized {
     fn get_key(&self) -> Option<&'a str>;
 }
 
-pub trait ApiResponse {
+trait ApiResponse {
     fn get_text(&self) -> String;
 }
 
-pub trait ApiError {
+trait ApiError {
     fn from_error_code(code: u16) -> Self;
 }
