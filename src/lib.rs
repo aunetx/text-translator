@@ -13,7 +13,7 @@ pub enum Error {
     /// Error raised by std::process::Command itself when launching `trans`.
     CouldNotLaunchTranslateShell(String),
     /// Error raised by `trans` returning a non-zero exit code, contains `stderr`.
-    TranslateShellProcessError(Vec<u8>),
+    TranslateShellProcessError(String),
     /// Errors when trying to convert translation result to utf-8.
     CouldNotConvertToUtf8String(std::string::FromUtf8Error),
     CouldNotConvertToUtf8Str(std::str::Utf8Error),

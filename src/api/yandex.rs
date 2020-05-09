@@ -136,7 +136,7 @@ pub enum YandexError {
 impl ApiError for YandexError {
     fn from_error_code(code: u16) -> Self {
         use YandexError::*;
-        match code {
+        match code - 1 {
             401 => InvalidAPIKey,
             402 => BlockedAPIKey,
             404 => DailyLimitExceeded,

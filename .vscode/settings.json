@@ -1,6 +1,6 @@
 {
   "code-runner.executorMap": {
-    "rust": "cargo run -- #$fileName"
+    "rust": "cargo test api_single_translate_automatic_language #$fileName"
   },
   "files.exclude": {
     ".vscode": true,
