@@ -36,34 +36,15 @@ fn api_single_detect_language() {
             None => panic!("Could detect language : unknown language"),
         },
         Err(err) => {
-            panic!("Could detect language : {:#?}", err);
+            panic!("API error, could detect language : {:#?}", err);
         }
     }
 }
 
 #[test]
-fn api_translate_all_languages() {
-    static mut FAILED_TASKS: u32 = 0;
-
-    Language::iterator().par_bridge().for_each(|language| {
-        let res =
-            TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, language.clone());
-
-        match res {
-            Ok(translation) => println!("Translated to {:?} : {:#?}", language, translation),
-            Err(err) => {
-                println!("Could not translate to {:?} : {:#?}", language, err);
-                unsafe { FAILED_TASKS += 1 }
-            }
-        }
-    });
-
-    assert_eq!(0, unsafe { FAILED_TASKS })
-}
-
-#[test]
 fn api_translate_and_detect_all_languages() {
-    static mut FAILED_TASKS: u32 = 0;
+    static mut HARD_FAILED_TASKS: u32 = 0;
+    static mut SOFT_FAILED_TASKS: u32 = 0;
 
     Language::iterator().par_bridge().for_each(|language| {
         let res =
@@ -80,32 +61,46 @@ fn api_translate_and_detect_all_languages() {
                                 "Language {:?} not detected correctly : detected {:?}",
                                 language, lang
                             );
-                            unsafe { FAILED_TASKS += 1 }
+                            unsafe { SOFT_FAILED_TASKS += 1 }
                         }
                     }
                     None => {
                         println!("No language detected for {:?}", language);
-                        unsafe { FAILED_TASKS += 1 }
+                        unsafe { SOFT_FAILED_TASKS += 1 }
                     }
                 },
                 Err(err) => {
                     println!("Could not detect {:?} : {:#?}", language, err);
-                    unsafe { FAILED_TASKS += 1 }
+                    unsafe { HARD_FAILED_TASKS += 1 }
                 }
             },
             Err(err) => {
                 println!("Could not translate to {:?} : {:#?}", language, err);
-                unsafe { FAILED_TASKS += 1 }
+                unsafe { HARD_FAILED_TASKS += 1 }
             }
         }
     });
 
-    // there are a lot of failed detections: fail if >30
-    let failed_tasks = unsafe { FAILED_TASKS };
-    if failed_tasks > 30 {
-        panic!("Too much failed detections : {}", failed_tasks)
+    // these are the errors due to the API, and not only incorrect detection/translation: fail if >0
+    let hard_failed_tasks = unsafe { HARD_FAILED_TASKS };
+    if hard_failed_tasks > 0 {
+        panic!("{} API errors, test failed", hard_failed_tasks)
     } else {
-        println!("Test passed, {} < 30 detections failed", failed_tasks)
+        println!("0 API error")
+    }
+
+    // these are the incorrect detections, but where API worked: fail if >30
+    let soft_failed_tasks = unsafe { SOFT_FAILED_TASKS };
+    if soft_failed_tasks > 30 {
+        panic!(
+            "{} > 30 incorrect detections, test failed",
+            soft_failed_tasks
+        )
+    } else {
+        println!(
+            "{} < 30 incorrect detections, test passed",
+            soft_failed_tasks
+        )
     }
 }
 
