@@ -1,14 +1,23 @@
 use crate::*;
 
-mod yandex;
-pub use yandex::*;
+pub mod yandex;
+pub use yandex::Yandex;
 
 /// A trait defining a translate API.
 ///
 /// Implements `new()` to return a new API, and `translate()` to translate a text.
 pub trait Api {
+    /// Returns a new API struct, without initiating it.
     fn new() -> Self;
 
+    /// Translates text between two languages.
+    ///
+    /// Takes in input the selected text and two enums:
+    ///
+    /// - `source_language`: [`InputLanguage`](../enum.InputLanguage.html), representing either automatic language detection or a defined language;
+    /// - `target_language`: [`Language`](../enum.Language.html), representing a defined language to output to.
+    ///
+    /// Returns a `Result` containing either a `String` with the translated text, or an [`Error`](../enum.Error.html) that happened during the process.
     fn translate(
         &self,
         text: String,
@@ -17,12 +26,12 @@ pub trait Api {
     ) -> Result<String, Error>;
 }
 
-/// A trait extending `Api`, where the API is capable of detecting the language of a text.
+/// Extends [`Api`](trait.Api.html), where the API is capable of detecting the language of a text.
 pub trait ApiDetect: Api {
     fn detect(&self, text: String) -> Result<Option<Language>, Error>;
 }
 
-/// A trait extending `Api`, where the API needs to have a API Key.
+/// Extends [`Api`](trait.Api.html), where the API needs to have a API Key.
 pub trait ApiKey<'a>: Api + Sized {
     fn set_set(&mut self, key: &'a str);
 
@@ -37,6 +46,11 @@ trait ApiDetectResponse {
     fn get_lang(&self) -> Option<Language>;
 }
 
-trait ApiError {
+/// Used on enums representing errors that a call to an API returned.
+pub trait ApiError {
+    /// Converts an error code to the enum variant.
     fn from_error_code(code: u16) -> Self;
+
+    /// Converts an error variant to the matching error code.
+    fn to_error_code(&self) -> u16;
 }

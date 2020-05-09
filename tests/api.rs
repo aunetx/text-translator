@@ -352,7 +352,7 @@ Dieu seul parle aux axes des cieux.
         Ok(_) => {
             panic!("should have been error 413: MaxTextSizeExceeded (translation did not fail)")
         }
-        Err(Error::YandexAPIError(YandexError::MaxTextSizeExceeded)) => {
+        Err(Error::YandexAPIError(yandex::YandexError::MaxTextSizeExceeded)) => {
             println!("API failed on too long text")
         }
         Err(err) => panic!(

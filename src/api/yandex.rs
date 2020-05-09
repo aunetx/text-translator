@@ -8,11 +8,80 @@ use urlencoding::encode;
 
 use super::*;
 
+/// Base URL used to access the Yandex API.
+pub const BASE_URL: &'static str = "https://translate.yandex.net/api/v1.5/tr.json/";
+
+/// # Yandex Translate API
+///
+/// A struct representing the [Yandex Translate API](https://tech.yandex.com/translate/doc/dg/concepts/about-docpage).
+///
+/// This API needs a key, which can be provided at [this page](https://translate.yandex.com/developers/keys).
+///
+/// It implements:
+///
+/// - language translation, with the default [`Api`](../trait.Api.html) trait
+/// - language detection, with the [`ApiDetect`](../trait.ApiDetect.html) trait
+/// - API key, with the [`ApiKey`](../trait.ApiDetect.html) trait
+///
+/// To use it, first construct the struct with a defined API key, then do the desired function calls.
+///
+/// ## Examples
+///
+/// ### Text translation
+///
+/// Translate a text from an unknown language to Japanese:
+///
+/// ```
+/// use text_translator::*;
+///
+/// // set your personnal API key
+/// const YANDEX_API_KEY: &str = "trnsl.1.1.20200507T202428Z.5e03932d06f63e6a.6ca69498c3b22bff94f6eda9ad8c21b4c3320078";
+///
+/// // construct the struct
+/// let translator: Yandex = Yandex::with_key(YANDEX_API_KEY);
+///
+/// let text: String = "Hello, my name is Naruto Uzumaki!".to_string();
+///
+/// // translate the text, returns a `Result<String, Error>`
+/// let translated_text: String = match translator.translate(text, InputLanguage::Automatic, Language::Japanese) {
+///     Ok(result) => result,
+///     Err(err) => panic!("API error, could not translate text : {:#?}", err)
+/// };
+///
+/// assert_eq!(translated_text, "こんにちは、鳴門のうずまき!")
+/// ```
+///
+/// ### Language detection
+///
+/// Detect the language of a text:
+///
+/// ```
+/// use text_translator::*;
+///
+/// const YANDEX_API_KEY: &str = "trnsl.1.1.20200507T202428Z.5e03932d06f63e6a.6ca69498c3b22bff94f6eda9ad8c21b4c3320078";
+///
+/// let translator: Yandex = Yandex::with_key(YANDEX_API_KEY);
+/// let text: String = "Bonjour, je m'appelle Naruto Uzumaki!".to_string();
+///
+/// // detect the language, returns a `Result<Option<Language>, Error>`
+/// let detected_language: Language = match translator.detect(text) {
+///     Ok(response) => match response {
+///         Some(language) => language,
+///         None => panic!("Could detect language : unknown language"),
+///     },
+///     Err(err) => panic!("API error, could not detect language : {:#?}", err)
+/// };
+///
+/// assert_eq!(detected_language, Language::French)
+/// ```
 pub struct Yandex<'a> {
     key: Option<&'a str>,
 }
 
 impl<'a> Yandex<'a> {
+    /// Returns a new [`Yandex`](struct.Yandex.html) struct with the given API key.
+    ///
+    /// Can be used in constant definitions.
     pub const fn with_key(key: &'a str) -> Self {
         Self { key: Some(key) }
     }
@@ -28,9 +97,10 @@ impl<'a> ApiKey<'a> for Yandex<'a> {
     }
 }
 
-const BASE_URL: &'static str = "https://translate.yandex.net/api/v1.5/tr.json/";
-
 impl<'a> Api for Yandex<'a> {
+    /// Returns a new [`Yandex`](struct.Yandex.html) struct without API key.
+    ///
+    /// To set it, use [`with_key`](struct.Yandex.html#method.with_key) or [`set_key`](../trait.ApiKey.html#tymethod.set_set) methods instead.
     fn new() -> Self {
         Self { key: None }
     }
@@ -173,6 +243,7 @@ impl ApiDetectResponse for DetectResponse {
     }
 }
 
+/// Enum containing different errors that may be returned by the Yandex API.
 #[derive(Debug)]
 pub enum YandexError {
     InvalidAPIKey,
@@ -195,6 +266,19 @@ impl ApiError for YandexError {
             422 => CouldNotTranslate,
             501 => TranslationDirectionNotSupported,
             other => UnknownErrorCode(other),
+        }
+    }
+
+    fn to_error_code(&self) -> u16 {
+        use YandexError::*;
+        match self {
+            InvalidAPIKey => 401,
+            BlockedAPIKey => 402,
+            DailyLimitExceeded => 404,
+            MaxTextSizeExceeded => 413,
+            CouldNotTranslate => 422,
+            TranslationDirectionNotSupported => 501,
+            UnknownErrorCode(other) => *other,
         }
     }
 }
