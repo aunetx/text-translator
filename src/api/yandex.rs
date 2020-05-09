@@ -12,11 +12,13 @@ pub struct Yandex<'a> {
     key: Option<&'a str>,
 }
 
-impl<'a> ApiKey<'a> for Yandex<'a> {
-    fn with_key(key: &'a str) -> Self {
+impl<'a> Yandex<'a> {
+    pub const fn with_key(key: &'a str) -> Self {
         Self { key: Some(key) }
     }
+}
 
+impl<'a> ApiKey<'a> for Yandex<'a> {
     fn set_set(&mut self, key: &'a str) {
         self.key = Some(key)
     }
@@ -33,6 +35,7 @@ impl<'a> Api for Yandex<'a> {
         Self { key: None }
     }
 
+    // TODO make `translate` async
     fn translate(
         &self,
         text: String,
@@ -41,16 +44,22 @@ impl<'a> Api for Yandex<'a> {
     ) -> Result<String, Error> {
         // get translation direction
         let translation_languages = match source_language {
-            InputLanguage::Automatic => target_language.to_language_code().to_string(),
-            InputLanguage::Defined(source) => format!(
-                "{}-{}",
-                source.to_language_code(),
-                target_language.to_language_code()
-            ),
+            InputLanguage::Automatic => format!("{}", target_language.to_language_code()),
+            InputLanguage::Defined(source) => {
+                // verify that source languages != target language
+                if source == target_language {
+                    return Err(Error::SameLanguages(source, target_language));
+                } else {
+                    format!(
+                        "{}-{}",
+                        source.to_language_code(),
+                        target_language.to_language_code()
+                    )
+                }
+            }
         };
 
         // build query
-        // TODO verify that text is not too long for Yandex API (10_000 characters)
         let mut query: String = String::from(BASE_URL);
         query = format!(
             "{}translate?key={}&lang={}&text={}",
@@ -73,22 +82,59 @@ impl<'a> Api for Yandex<'a> {
             Err(_) => return Err(Error::CouldNotParseUri(query)),
         };
 
-        runtime.block_on(get_response(uri))
+        let body = runtime.block_on(get_response(uri))?;
+
+        let json_body: TranslateResponse = match from_str(body.as_str()) {
+            Ok(res) => res,
+            Err(_) => return Err(Error::CouldNotDerializeJson),
+        };
+
+        Ok(json_body.get_text())
     }
 }
 
-// TODO handle await errors instead of calling `unwrap()`
+impl<'a> ApiDetect for Yandex<'a> {
+    // TODO make `detect` async
+    fn detect(&self, text: String) -> Result<Option<Language>, Error> {
+        // build query
+        let mut query: String = String::from(BASE_URL);
+        query = format!(
+            "{}detect?key={}&text={}",
+            query,
+            match self.key {
+                Some(key) => key,
+                None => return Err(Error::NoApiKeySet),
+            },
+            encode(text.as_str())
+        );
+
+        let mut runtime = match Runtime::new() {
+            Ok(res) => res,
+            Err(_) => return Err(Error::FailedToCreateTokioRuntime),
+        };
+
+        let uri = match query.parse::<Uri>() {
+            Ok(res) => res,
+            Err(_) => return Err(Error::CouldNotParseUri(query)),
+        };
+
+        let body = runtime.block_on(get_response(uri))?;
+
+        let json_body: DetectResponse = match from_str(body.as_str()) {
+            Ok(res) => res,
+            Err(_) => return Err(Error::CouldNotDerializeJson),
+        };
+
+        Ok(json_body.get_lang())
+    }
+}
+
+/// Returns the response json body, needed to be deserialized.
 async fn get_response(uri: Uri) -> Result<String, Error> {
     let https = HttpsConnector::new();
     let client = Client::builder().build::<_, hyper::Body>(https);
 
     let res = client.get(uri).await.unwrap();
-
-    // TODO log status / headers / body
-    //println!("STATUS = {}", res.status());
-    //println!("HEADERS = {:#?}", res.headers());
-    //println!("BODY = {:#?}", res.body());
-    //println!("JSON BODY = {:#?}", json_body);
 
     match res.status().as_u16() {
         200 => (),
@@ -96,29 +142,34 @@ async fn get_response(uri: Uri) -> Result<String, Error> {
     };
 
     let body = to_bytes(res.into_body()).await.unwrap();
-    let body = match std::str::from_utf8(&body) {
-        Ok(res) => res,
-        Err(err) => return Err(Error::CouldNotConvertToUtf8Str(err)),
-    };
-
-    let json_body: Response = match from_str(body) {
-        Ok(res) => res,
-        Err(_) => return Err(Error::CouldNotDerializeJson),
-    };
-
-    Ok(json_body.get_text())
+    match std::str::from_utf8(&body) {
+        Ok(res) => Ok(res.to_string()),
+        Err(err) => Err(Error::CouldNotConvertToUtf8Str(err)),
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Response {
+struct TranslateResponse {
     code: u16,
     lang: String,
     text: Vec<String>,
 }
 
-impl ApiResponse for Response {
+impl ApiTranslateResponse for TranslateResponse {
     fn get_text(&self) -> String {
         self.text.join("\n")
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct DetectResponse {
+    code: u16,
+    lang: String,
+}
+
+impl ApiDetectResponse for DetectResponse {
+    fn get_lang(&self) -> Option<Language> {
+        Language::from_language_code(self.lang.clone())
     }
 }
 

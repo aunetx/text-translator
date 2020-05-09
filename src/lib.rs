@@ -1,10 +1,7 @@
-pub mod api;
-pub mod translate_shell;
-
-mod engines;
+mod api;
 mod languages;
 
-pub use engines::*;
+pub use api::*;
 pub use languages::*;
 
 /// Enum containing different errors that may be raised by the program at runtime.
@@ -25,6 +22,10 @@ pub enum Error {
     CouldNotParseUri(String),
     /// Error executing `tokio::runtime::Runtime::new()`
     FailedToCreateTokioRuntime,
+    /// Language input and output are the same
+    SameLanguages(Language, Language),
+    /// Could not retrieve language code
+    UnknownLanguageCode(String),
     /// Yandex API error
     YandexAPIError(api::YandexError),
 }

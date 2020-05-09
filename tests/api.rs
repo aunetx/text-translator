@@ -5,14 +5,12 @@ use text_translator::*;
 
 const YANDEX_API_KEY: &str =
     "trnsl.1.1.20200507T202428Z.5e03932d06f63e6a.6ca69498c3b22bff94f6eda9ad8c21b4c3320078";
-const ENGINE: Engine = Engine::Api(api::Translator::Yandex {
-    key: YANDEX_API_KEY,
-});
+const TRANSLATOR: Yandex = Yandex::with_key(YANDEX_API_KEY);
 const TEXT: &str = "Hello, my name is Naruto Uzumaki!\nI love noodles and fights.";
 
 #[test]
 fn api_single_translate() {
-    let res = ENGINE.translate(
+    let res = TRANSLATOR.translate(
         TEXT.to_string(),
         InputLanguage::Defined(Language::English),
         Language::French,
@@ -23,9 +21,24 @@ fn api_single_translate() {
 
 #[test]
 fn api_single_translate_automatic_language() {
-    let res = ENGINE.translate(TEXT.to_string(), InputLanguage::Automatic, Language::French);
+    let res = TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, Language::French);
 
     res.unwrap();
+}
+
+#[test]
+fn api_single_detect_language() {
+    let res = TRANSLATOR.detect(TEXT.to_string());
+
+    match res {
+        Ok(response) => match response {
+            Some(language) => println!("Detected language : {:#?}", language),
+            None => panic!("Could detect language : unknown language"),
+        },
+        Err(err) => {
+            panic!("Could detect language : {:#?}", err);
+        }
+    }
 }
 
 #[test]
@@ -33,7 +46,8 @@ fn api_translate_all_languages() {
     static mut FAILED_TASKS: u32 = 0;
 
     Language::iterator().par_bridge().for_each(|language| {
-        let res = ENGINE.translate(TEXT.to_string(), InputLanguage::Automatic, language.clone());
+        let res =
+            TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, language.clone());
 
         match res {
             Ok(translation) => println!("Translated to {:?} : {:#?}", language, translation),
@@ -45,6 +59,54 @@ fn api_translate_all_languages() {
     });
 
     assert_eq!(0, unsafe { FAILED_TASKS })
+}
+
+#[test]
+fn api_translate_and_detect_all_languages() {
+    static mut FAILED_TASKS: u32 = 0;
+
+    Language::iterator().par_bridge().for_each(|language| {
+        let res =
+            TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, language.clone());
+
+        match res {
+            Ok(translation) => match TRANSLATOR.detect(translation) {
+                Ok(val) => match val {
+                    Some(lang) => {
+                        if lang == *language {
+                            println!("Language {:?} well detected", language)
+                        } else {
+                            println!(
+                                "Language {:?} not detected correctly : detected {:?}",
+                                language, lang
+                            );
+                            unsafe { FAILED_TASKS += 1 }
+                        }
+                    }
+                    None => {
+                        println!("No language detected for {:?}", language);
+                        unsafe { FAILED_TASKS += 1 }
+                    }
+                },
+                Err(err) => {
+                    println!("Could not detect {:?} : {:#?}", language, err);
+                    unsafe { FAILED_TASKS += 1 }
+                }
+            },
+            Err(err) => {
+                println!("Could not translate to {:?} : {:#?}", language, err);
+                unsafe { FAILED_TASKS += 1 }
+            }
+        }
+    });
+
+    // there are a lot of failed detections: fail if >30
+    let failed_tasks = unsafe { FAILED_TASKS };
+    if failed_tasks > 30 {
+        panic!("Too much failed detections : {}", failed_tasks)
+    } else {
+        println!("Test passed, {} < 30 detections failed", failed_tasks)
+    }
 }
 
 #[test]
@@ -94,7 +156,7 @@ Au fond de nos tombeaux !
 
 Victor Hugo - Les Châtiments "#;
 
-    let res = ENGINE.translate(
+    let res = TRANSLATOR.translate(
         LONG_TEXT.to_string(),
         InputLanguage::Automatic,
         Language::English,
@@ -289,13 +351,13 @@ Dieu seul parle aux axes des cieux.
     too_long_text.push_str(&too_long_text.clone());
     too_long_text.push_str(&too_long_text.clone());
 
-    let res = ENGINE.translate(too_long_text, InputLanguage::Automatic, Language::English);
+    let res = TRANSLATOR.translate(too_long_text, InputLanguage::Automatic, Language::English);
 
     match res {
         Ok(_) => {
             panic!("should have been error 413: MaxTextSizeExceeded (translation did not fail)")
         }
-        Err(Error::YandexAPIError(api::YandexError::MaxTextSizeExceeded)) => {
+        Err(Error::YandexAPIError(YandexError::MaxTextSizeExceeded)) => {
             println!("API failed on too long text")
         }
         Err(err) => panic!(
