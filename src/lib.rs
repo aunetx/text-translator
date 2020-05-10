@@ -1,3 +1,42 @@
+/*!
+# text_translator
+
+## Description
+
+This crate permits to translate text between languages easily. Its goals are:
+
+- implementing an unique library for different APIs
+- permitting language translations / detections with or withtout API key when possible
+- ease of use / relative performances
+- (later) async translations
+
+Its goal are to implement the following APIs:
+
+- `[x]` [Yandex.Translate](https://tech.yandex.com/translate/doc/dg/concepts/about-docpage)
+    - `[x]` with [API key](https://translate.yandex.com/developers/keys)
+    - `[ ]` without key (5_000 chars/translation max)
+- `[ ]` [Google Translate](https://cloud.google.com/translate/docs/)
+- `[ ]` [Bing](https://azure.microsoft.com/en-us/services/cognitive-services/translator-text-api/)
+
+## How to use
+
+To use it, you first need to construct a translator (a struct implementing the [Api](trait.Api.html) trait).
+
+Then, you will be able to do various function calls on this struct:
+
+- [`my_translator.translate(my_text, input_language, target_language)`](trait.Api.html#tymethod.translate)
+- [`my_translator.detect(my_text)`](trait.ApiDetect.html#tymethod.detect) if the API implements language detection
+
+Languages are represented with the [`Language`](enum.Language.html) enum for target language, and [`InputLanguage`](enum.InputLanguage.html) for input language.
+See their respective documentations for more.
+
+## Examples
+
+For the moment, only the Yandex API is implemented.
+
+To see examples on how to use it, see [its documentation](struct.Yandex.html).
+*/
+
 mod api;
 mod languages;
 

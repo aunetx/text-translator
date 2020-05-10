@@ -26,12 +26,25 @@ pub trait Api {
     ) -> Result<String, Error>;
 }
 
-/// Extends [`Api`](trait.Api.html), where the API is capable of detecting the language of a text.
+/// Extends [`Api`](trait.Api.html) to implement language detection.
 pub trait ApiDetect: Api {
+    /// Detect the language of the selected text.
+    ///
+    /// ## Inputs
+    ///
+    /// Takes in input only a `String` containing the text.
+    ///
+    /// ## Outputs
+    ///
+    /// The method returns a `Result<Option<Language>, Error>` type:
+    ///
+    /// - if the API was able to detect the language, it will result in an `Ok(Some(detected_language))`.
+    /// - if it failed to detect, it will be an `Ok(None)`.
+    /// - if an error preventing the API to do the detection, it will return an error: `Error(returned_error)`.
     fn detect(&self, text: String) -> Result<Option<Language>, Error>;
 }
 
-/// Extends [`Api`](trait.Api.html), where the API needs to have a API Key.
+/// Extends [`Api`](trait.Api.html), where the API needs to have an API Key.
 pub trait ApiKey<'a>: Api + Sized {
     fn set_set(&mut self, key: &'a str);
 

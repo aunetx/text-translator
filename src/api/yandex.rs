@@ -1,3 +1,9 @@
+/*!
+A module containing the implementation of the [Yandex Translate API](https://tech.yandex.com/translate/doc/dg/concepts/about-docpage).
+
+To use it, see the [`Yandex struct`](struct.Yandex.html).
+*/
+
 use http::uri::Uri;
 use hyper::{body::to_bytes, client::Client};
 use hyper_tls::HttpsConnector;
