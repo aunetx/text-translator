@@ -1,7 +1,7 @@
 /// Represents the languages that the text to translate shall use.
 ///
 /// It can be either an automatic detection, or a predefined [`Language`](enum.Language.html).
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub enum InputLanguage {
     /// Automatic language detection.
     Automatic,
@@ -12,7 +12,7 @@ pub enum InputLanguage {
 /// Represents all the languages available for translation.
 ///
 /// They are all compatible with the Yandex API.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Language {
     Afrikaans,
     Albanian,

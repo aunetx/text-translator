@@ -85,3 +85,9 @@ let detected_language: Language = match translator.detect(text) {
 
 assert_eq!(detected_language, Language::French)
 ```
+
+## Contributing
+
+All contributions are welcome!
+
+If you find any issue, please report it — if you have recommendations too!

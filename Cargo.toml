@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["aunetx <aunetx@yandex.com>"]
 description = "A library to translate text between languages, using selected engine API"
 edition = "2018"
+readme = "README.md"
+repository = "https://github.com/aunetx/text-translator"
+license = "MIT"
+keywords = ["translate", "translation", "yandex"]
+categories = ["text-processing"]
 
 [dependencies]
 hyper = "0.13"

@@ -44,7 +44,7 @@ pub use api::*;
 pub use languages::*;
 
 /// Enum containing different errors that may be raised by the program at runtime.
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Error {
     /// Error when trying to convert translation result to utf-8.
     CouldNotConvertToUtf8String(std::string::FromUtf8Error),
@@ -65,3 +65,11 @@ pub enum Error {
     /// Yandex API error.
     YandexAPIError(api::yandex::YandexError),
 }
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error : {}", &self)
+    }
+}
+
+impl std::error::Error for Error {}

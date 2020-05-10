@@ -83,6 +83,7 @@ pub const BASE_URL: &'static str = "https://translate.yandex.net/api/v1.5/tr.jso
 ///
 /// assert_eq!(detected_language, Language::French)
 /// ```
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Yandex<'a> {
     key: Option<&'a str>,
 }
@@ -253,7 +254,7 @@ impl ApiDetectResponse for DetectResponse {
 }
 
 /// Enum containing different errors that may be returned by the Yandex API.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub enum YandexError {
     InvalidAPIKey,
     BlockedAPIKey,
@@ -291,3 +292,11 @@ impl ApiError for YandexError {
         }
     }
 }
+
+impl std::fmt::Display for YandexError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error : {}", &self)
+    }
+}
+
+impl std::error::Error for YandexError {}
