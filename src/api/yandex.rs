@@ -33,6 +33,9 @@ pub const BASE_URL: &'static str = "https://translate.yandex.net/api/v1.5/tr.jso
 ///
 /// ## Examples
 ///
+/// *__Important:__ In order to use those examples, you need to get a free API Key on the
+/// [Yandex website](https://translate.yandex.com/developers/keys) and replace the `YANDEX_API_KEY` const with it.*
+///
 /// ### Text translation
 ///
 /// Translate a text from an unknown language to Japanese:

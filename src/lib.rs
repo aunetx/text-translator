@@ -10,7 +10,7 @@ This crate permits to translate text between languages easily. Its goals are:
 - ease of use / relative performances
 - (later) async translations
 
-Its goal are to implement the following APIs:
+It wants to implement the following APIs:
 
 - `[x]` [Yandex.Translate](https://tech.yandex.com/translate/doc/dg/concepts/about-docpage)
     - `[x]` with [API key](https://translate.yandex.com/developers/keys)
