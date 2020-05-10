@@ -9,6 +9,10 @@ repository = "https://github.com/aunetx/text-translator"
 license = "MIT"
 keywords = ["translate", "translation", "yandex"]
 categories = ["text-processing"]
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
 
 [dependencies]
 hyper = "0.13"
