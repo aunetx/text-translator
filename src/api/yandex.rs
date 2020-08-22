@@ -249,7 +249,7 @@ struct DetectResponse {
 
 impl ApiDetectResponse for DetectResponse {
     fn get_lang(&self) -> Option<Language> {
-        Language::from_language_code(self.lang.clone())
+        Language::from_language_code(&self.lang)
     }
 }
 

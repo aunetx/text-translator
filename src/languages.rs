@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 /// Represents the languages that the text to translate shall use.
 ///
 /// It can be either an automatic detection, or a predefined [`Language`](enum.Language.html).
@@ -210,9 +212,9 @@ impl Language {
         }
     }
 
-    pub fn from_language_code(code: String) -> Option<Language> {
+    pub fn from_language_code(code: &str) -> Option<Language> {
         use Language::*;
-        match code.as_str() {
+        match code {
             // YANDEX api-compatibles
             "af" => Some(Afrikaans),
             "sq" => Some(Albanian),
@@ -309,6 +311,14 @@ impl Language {
             "yi" => Some(Yiddish),
             _ => None,
         }
+    }
+}
+
+impl FromStr for Language {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Language::from_language_code(s).ok_or("No match")
     }
 }
 
