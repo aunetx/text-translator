@@ -3,6 +3,9 @@ use crate::*;
 pub mod yandex;
 pub use yandex::Yandex;
 
+pub mod google;
+pub use google::GoogleV2;
+
 /// A trait defining a translate API.
 ///
 /// Implements `new()` to return a new API, and `translate()` to translate a text.
