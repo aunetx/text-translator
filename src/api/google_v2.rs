@@ -182,14 +182,15 @@ impl<'a> ApiDetect for GoogleV2<'a> {
     fn detect(&self, text: String) -> Result<Option<Language>, Error> {
         // build query
         let query = format!(
-            "{}detect?q={}&key={}",
+            "{}/detect?key={}",
             GOOGLE_V2_BASE_URL,
-            encode(text.as_str()),
             match self.key {
-                Some(key) => encode(&key),
+                Some(key) => key,
                 None => return Err(Error::NoApiKeySet),
             },
         );
+
+        let body = format!(r#"{{"q":"{}"}}"#, &text);
 
         let mut runtime = match Runtime::new() {
             Ok(res) => res,
@@ -201,9 +202,9 @@ impl<'a> ApiDetect for GoogleV2<'a> {
             Err(_) => return Err(Error::CouldNotParseUri(query)),
         };
 
-        let body = runtime.block_on(get_response(uri, String::new()))?;
+        let body = runtime.block_on(get_response(uri, body))?;
 
-        let json_body: DetectResponse = match from_str(body.as_str()) {
+        let json_body: GoogleDetectResponse = match from_str(body.as_str()) {
             Ok(res) => res,
             Err(_) => return Err(super::Error::CouldNotDerializeJson),
         };
@@ -268,15 +269,36 @@ impl ApiTranslateResponse for TranslateResponse {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct DetectResponse {
-    code: u16,
-    lang: String,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GoogleDetectResponse {
+    data: DetectData,
 }
 
-impl ApiDetectResponse for DetectResponse {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DetectData {
+    detections: Vec<Vec<Detection>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Detection {
+    confidence: i64,
+    #[serde(rename = "isReliable")]
+    is_reliable: bool,
+    language: String,
+}
+
+impl ApiDetectResponse for GoogleDetectResponse {
     fn get_lang(&self) -> Option<Language> {
-        Language::from_language_code(&self.lang)
+        Language::from_language_code(
+            &self
+                .data
+                .detections
+                .iter()
+                .map(|detection| detection.first().unwrap())
+                .map(|detection| &detection.language[..])
+                .collect::<Vec<&str>>()
+                .join("\n"),
+        )
     }
 }
 
