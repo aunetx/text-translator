@@ -65,7 +65,6 @@ pub enum Error {
     /// Yandex API error.
     YandexAPIError(api::yandex::YandexError),
     GoogleV2APIError(api::google_v2::GoogleV2Error),
-    GoogleV3APIError(api::google_v3::GoogleV3Error),
 }
 
 impl std::fmt::Display for Error {

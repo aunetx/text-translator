@@ -10,7 +10,6 @@ use hyper_tls::HttpsConnector;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tokio::runtime::Runtime;
-use urlencoding::encode;
 
 use super::*;
 
