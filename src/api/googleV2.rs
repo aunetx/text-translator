@@ -19,14 +19,14 @@ pub const GOOGLE_V2_BASE_URL: &str = "https://translation.googleapis.com/languag
 
 /// Helper structure of the request boy of a google translate request
 #[derive(Serialize)]
-struct GoogleRequestBody<'a> {
+struct GoogleV2RequestBody<'a> {
     q: &'a str,
     source: &'a str,
     target: &'a str,
     format: &'static str,
 }
 
-impl<'a> GoogleRequestBody<'a> {
+impl<'a> GoogleV2RequestBody<'a> {
     fn new(q: &'a str, source: &'a str, target: &'a str) -> Self {
         Self {
             q,
@@ -149,7 +149,7 @@ impl<'a> Api for GoogleV2<'a> {
 
         // build query
         let url: String = format!("{}?key={}", GOOGLE_V2_BASE_URL, self.key.unwrap());
-        let body = serde_json::to_string(&GoogleRequestBody::new(
+        let body = serde_json::to_string(&GoogleV2RequestBody::new(
             &text,
             source_language,
             target_language.to_language_code(),
@@ -228,7 +228,7 @@ async fn get_response(uri: Uri, body: String) -> Result<String, Error> {
 
     match res.status().as_u16() {
         200 => (),
-        error => return Err(Error::GoogleAPIError(GoogleError::from_error_code(error))),
+        error => return Err(Error::GoogleAPIError(GoogleV2Error::from_error_code(error))),
     };
 
     let body = to_bytes(res.into_body()).await.unwrap();
@@ -279,7 +279,7 @@ impl ApiDetectResponse for DetectResponse {
 
 /// Enum containing different errors that may be returned by the Google API.
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
-pub enum GoogleError {
+pub enum GoogleV2Error {
     InvalidAPIKey,
     BlockedAPIKey,
     DailyLimitExceeded,
@@ -289,36 +289,36 @@ pub enum GoogleError {
     UnknownErrorCode(u16),
 }
 
-impl ApiError for GoogleError {
+impl ApiError for GoogleV2Error {
     fn from_error_code(code: u16) -> Self {
         match code - 1 {
-            401 => GoogleError::InvalidAPIKey,
-            402 => GoogleError::BlockedAPIKey,
-            404 => GoogleError::DailyLimitExceeded,
-            413 => GoogleError::MaxTextSizeExceeded,
-            422 => GoogleError::CouldNotTranslate,
-            501 => GoogleError::TranslationDirectionNotSupported,
-            other => GoogleError::UnknownErrorCode(other),
+            401 => GoogleV2Error::InvalidAPIKey,
+            402 => GoogleV2Error::BlockedAPIKey,
+            404 => GoogleV2Error::DailyLimitExceeded,
+            413 => GoogleV2Error::MaxTextSizeExceeded,
+            422 => GoogleV2Error::CouldNotTranslate,
+            501 => GoogleV2Error::TranslationDirectionNotSupported,
+            other => GoogleV2Error::UnknownErrorCode(other),
         }
     }
 
     fn to_error_code(&self) -> u16 {
         match self {
-            GoogleError::InvalidAPIKey => 401,
-            GoogleError::BlockedAPIKey => 402,
-            GoogleError::DailyLimitExceeded => 404,
-            GoogleError::MaxTextSizeExceeded => 413,
-            GoogleError::CouldNotTranslate => 422,
-            GoogleError::TranslationDirectionNotSupported => 501,
-            GoogleError::UnknownErrorCode(other) => *other,
+            GoogleV2Error::InvalidAPIKey => 401,
+            GoogleV2Error::BlockedAPIKey => 402,
+            GoogleV2Error::DailyLimitExceeded => 404,
+            GoogleV2Error::MaxTextSizeExceeded => 413,
+            GoogleV2Error::CouldNotTranslate => 422,
+            GoogleV2Error::TranslationDirectionNotSupported => 501,
+            GoogleV2Error::UnknownErrorCode(other) => *other,
         }
     }
 }
 
-impl std::fmt::Display for GoogleError {
+impl std::fmt::Display for GoogleV2Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Error : {}", &self)
     }
 }
 
-impl std::error::Error for GoogleError {}
+impl std::error::Error for GoogleV2Error {}

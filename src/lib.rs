@@ -64,7 +64,7 @@ pub enum Error {
     UnknownLanguageCode(String),
     /// Yandex API error.
     YandexAPIError(api::yandex::YandexError),
-    GoogleAPIError(api::google::GoogleError),
+    GoogleAPIError(api::googleV2::GoogleV2Error),
 }
 
 impl std::fmt::Display for Error {

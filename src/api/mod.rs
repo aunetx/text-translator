@@ -3,8 +3,8 @@ use crate::*;
 pub mod yandex;
 pub use yandex::Yandex;
 
-pub mod google;
-pub use google::GoogleV2;
+pub mod googleV2;
+pub use googleV2::GoogleV2;
 
 /// A trait defining a translate API.
 ///
