@@ -15,7 +15,7 @@ use urlencoding::encode;
 use super::*;
 
 /// Base URL used to access the Yandex API.
-pub const BASE_URL: &'static str = "https://translate.yandex.net/api/v1.5/tr.json/";
+pub const BASE_URL: &str = "https://translate.yandex.net/api/v1.5/tr.json/";
 
 /// # Yandex Translate API
 ///
@@ -124,7 +124,7 @@ impl<'a> Api for Yandex<'a> {
     ) -> Result<String, Error> {
         // get translation direction
         let translation_languages = match source_language {
-            InputLanguage::Automatic => format!("{}", target_language.to_language_code()),
+            InputLanguage::Automatic => target_language.to_language_code().into(),
             InputLanguage::Defined(source) => {
                 // verify that source languages != target language
                 if source == target_language {
