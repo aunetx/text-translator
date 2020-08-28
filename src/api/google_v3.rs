@@ -1,7 +1,7 @@
 /*!
 A module containing the implementation of the [Google Translate API](https://cloud.google.com/translate/docs).
 
-To use it, see the [`Google struct`](struct.GoogleV2.html).
+To use it, see the [`Google struct`](struct.GoogleV3.html).
 */
 
 use http::{uri::Uri, Request};
@@ -15,18 +15,18 @@ use urlencoding::encode;
 use super::*;
 
 /// Base URL used to access the Google API.
-pub const GOOGLE_V2_BASE_URL: &str = "https://translation.googleapis.com/language/translate/v2";
+pub const GOOGLE_V3_BASE_URL: &str = "https://translation.googleapis.com/language/translate/v3";
 
 /// Helper structure of the request boy of a google translate request
 #[derive(Serialize)]
-struct GoogleV2RequestBody<'a> {
+struct GoogleV3RequestBody<'a> {
     q: &'a str,
     source: &'a str,
     target: &'a str,
     format: &'static str,
 }
 
-impl<'a> GoogleV2RequestBody<'a> {
+impl<'a> GoogleV3RequestBody<'a> {
     fn new(q: &'a str, source: &'a str, target: &'a str) -> Self {
         Self {
             q,
@@ -59,7 +59,7 @@ impl<'a> GoogleV2RequestBody<'a> {
 /// use text_translator::*;
 ///
 /// // construct the struct
-/// let translator = GoogleV2::with_key("<GOOGLE_API_KEY>");
+/// let translator = GoogleV3::with_key("<GOOGLE_API_KEY>");
 ///
 /// let text: String = "Hello, my name is Naruto Uzumaki!".to_string();
 ///
@@ -79,7 +79,7 @@ impl<'a> GoogleV2RequestBody<'a> {
 /// ```
 /// use text_translator::*;
 ///
-/// let translator = GoogleV2::with_key("<GOOGLE_API_KEY>");
+/// let translator = GoogleV3::with_key("<GOOGLE_API_KEY>");
 /// let text: String = "Bonjour, je m'appelle Naruto Uzumaki!".to_string();
 ///
 /// // detect the language, returns a `Result<Option<Language>, Error>`
@@ -94,11 +94,11 @@ impl<'a> GoogleV2RequestBody<'a> {
 /// assert_eq!(detected_language, Language::French)
 /// ```
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
-pub struct GoogleV2<'a> {
+pub struct GoogleV3<'a> {
     key: Option<&'a str>,
 }
 
-impl<'a> GoogleV2<'a> {
+impl<'a> GoogleV3<'a> {
     /// Returns a new [`Google`](struct.Google.html) struct with the given API key.
     ///
     /// Can be used in constant definitions.
@@ -107,7 +107,7 @@ impl<'a> GoogleV2<'a> {
     }
 }
 
-impl<'a> ApiKey<'a> for GoogleV2<'a> {
+impl<'a> ApiKey<'a> for GoogleV3<'a> {
     fn set_set(&mut self, key: &'a str) {
         self.key = Some(key)
     }
@@ -117,7 +117,7 @@ impl<'a> ApiKey<'a> for GoogleV2<'a> {
     }
 }
 
-impl<'a> Api for GoogleV2<'a> {
+impl<'a> Api for GoogleV3<'a> {
     /// Returns a new [`Google`](struct.Google.html) struct without API key.
     ///
     /// To set it, use [`with_key`](struct.Google.html#method.with_key) or [`set_key`](../trait.ApiKey.html#tymethod.set_set) methods instead.
@@ -148,8 +148,8 @@ impl<'a> Api for GoogleV2<'a> {
         };
 
         // build query
-        let url: String = format!("{}?key={}", GOOGLE_V2_BASE_URL, self.key.unwrap());
-        let body = serde_json::to_string(&GoogleV2RequestBody::new(
+        let url: String = format!("{}?key={}", GOOGLE_V3_BASE_URL, self.key.unwrap());
+        let body = serde_json::to_string(&GoogleV3RequestBody::new(
             &text,
             source_language,
             target_language.to_language_code(),
@@ -177,11 +177,11 @@ impl<'a> Api for GoogleV2<'a> {
     }
 }
 
-impl<'a> ApiDetect for GoogleV2<'a> {
+impl<'a> ApiDetect for GoogleV3<'a> {
     // TODO make `detect` async
     fn detect(&self, text: String) -> Result<Option<Language>, Error> {
         // build query
-        let mut query: String = String::from(GOOGLE_V2_BASE_URL);
+        let mut query: String = String::from(GOOGLE_V3_BASE_URL);
         query = format!(
             "{}detect?key={}&text={}",
             query,
@@ -228,7 +228,7 @@ async fn get_response(uri: Uri, body: String) -> Result<String, Error> {
 
     match res.status().as_u16() {
         200 => (),
-        error => return Err(Error::GoogleAPIError(GoogleV2Error::from_error_code(error))),
+        error => return Err(Error::GoogleV3APIError(GoogleV3Error::from_error_code(error))),
     };
 
     let body = to_bytes(res.into_body()).await.unwrap();
@@ -279,7 +279,7 @@ impl ApiDetectResponse for DetectResponse {
 
 /// Enum containing different errors that may be returned by the Google API.
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
-pub enum GoogleV2Error {
+pub enum GoogleV3Error {
     InvalidAPIKey,
     BlockedAPIKey,
     DailyLimitExceeded,
@@ -289,36 +289,36 @@ pub enum GoogleV2Error {
     UnknownErrorCode(u16),
 }
 
-impl ApiError for GoogleV2Error {
+impl ApiError for GoogleV3Error {
     fn from_error_code(code: u16) -> Self {
         match code - 1 {
-            401 => GoogleV2Error::InvalidAPIKey,
-            402 => GoogleV2Error::BlockedAPIKey,
-            404 => GoogleV2Error::DailyLimitExceeded,
-            413 => GoogleV2Error::MaxTextSizeExceeded,
-            422 => GoogleV2Error::CouldNotTranslate,
-            501 => GoogleV2Error::TranslationDirectionNotSupported,
-            other => GoogleV2Error::UnknownErrorCode(other),
+            401 => GoogleV3Error::InvalidAPIKey,
+            402 => GoogleV3Error::BlockedAPIKey,
+            404 => GoogleV3Error::DailyLimitExceeded,
+            413 => GoogleV3Error::MaxTextSizeExceeded,
+            422 => GoogleV3Error::CouldNotTranslate,
+            501 => GoogleV3Error::TranslationDirectionNotSupported,
+            other => GoogleV3Error::UnknownErrorCode(other),
         }
     }
 
     fn to_error_code(&self) -> u16 {
         match self {
-            GoogleV2Error::InvalidAPIKey => 401,
-            GoogleV2Error::BlockedAPIKey => 402,
-            GoogleV2Error::DailyLimitExceeded => 404,
-            GoogleV2Error::MaxTextSizeExceeded => 413,
-            GoogleV2Error::CouldNotTranslate => 422,
-            GoogleV2Error::TranslationDirectionNotSupported => 501,
-            GoogleV2Error::UnknownErrorCode(other) => *other,
+            GoogleV3Error::InvalidAPIKey => 401,
+            GoogleV3Error::BlockedAPIKey => 402,
+            GoogleV3Error::DailyLimitExceeded => 404,
+            GoogleV3Error::MaxTextSizeExceeded => 413,
+            GoogleV3Error::CouldNotTranslate => 422,
+            GoogleV3Error::TranslationDirectionNotSupported => 501,
+            GoogleV3Error::UnknownErrorCode(other) => *other,
         }
     }
 }
 
-impl std::fmt::Display for GoogleV2Error {
+impl std::fmt::Display for GoogleV3Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Error : {}", &self)
     }
 }
 
-impl std::error::Error for GoogleV2Error {}
+impl std::error::Error for GoogleV3Error {}
