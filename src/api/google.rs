@@ -51,11 +51,6 @@ impl<'a> GoogleRequestBody<'a> {
 ///
 /// To use it, first construct the struct with a defined API key, then do the desired function calls.
 ///
-/// ## Examples
-///
-/// *__Important:__ In order to use those examples, you need to get a free API Key on the
-/// [Google website](https://cloud.google.com/translate/docs/setup) and replace the `GOOGLE_API_KEY` const with it.*
-///
 /// ### Text translation
 ///
 /// Translate a text from an unknown language to Japanese:
@@ -63,11 +58,8 @@ impl<'a> GoogleRequestBody<'a> {
 /// ```
 /// use text_translator::*;
 ///
-/// // set your personnal API key
-/// const GOOGLE_API_KEY: &str = "trnsl.1.1.20200507T202428Z.5e03932d06f63e6a.6ca69498c3b22bff94f6eda9ad8c21b4c3320078";
-///
 /// // construct the struct
-/// let translator = GoogleV2::with_key(GOOGLE_API_KEY);
+/// let translator = GoogleV2::with_key("<GOOGLE_API_KEY>");
 ///
 /// let text: String = "Hello, my name is Naruto Uzumaki!".to_string();
 ///
@@ -87,9 +79,7 @@ impl<'a> GoogleRequestBody<'a> {
 /// ```
 /// use text_translator::*;
 ///
-/// const GOOGLE_API_KEY: &str = "trnsl.1.1.20200507T202428Z.5e03932d06f63e6a.6ca69498c3b22bff94f6eda9ad8c21b4c3320078";
-///
-/// let translator = GoogleV2::with_key(GOOGLE_API_KEY);
+/// let translator = GoogleV2::with_key("<GOOGLE_API_KEY>");
 /// let text: String = "Bonjour, je m'appelle Naruto Uzumaki!".to_string();
 ///
 /// // detect the language, returns a `Result<Option<Language>, Error>`
