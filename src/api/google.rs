@@ -17,15 +17,16 @@ use super::*;
 /// Base URL used to access the Google API.
 pub const GOOGLE_V2_BASE_URL: &str = "https://translation.googleapis.com/language/translate/v2";
 
+/// Helper structure of the request boy of a google translate request
 #[derive(Serialize)]
-struct GoogleRequest<'a> {
+struct GoogleRequestBody<'a> {
     q: &'a str,
     source: &'a str,
     target: &'a str,
     format: &'static str,
 }
 
-impl<'a> GoogleRequest<'a> {
+impl<'a> GoogleRequestBody<'a> {
     fn new(q: &'a str, source: &'a str, target: &'a str) -> Self {
         Self {
             q,
@@ -158,7 +159,12 @@ impl<'a> Api for GoogleV2<'a> {
 
         // build query
         let url: String = format!("{}?key={}", GOOGLE_V2_BASE_URL, self.key.unwrap());
-        let body = serde_json::to_string(&GoogleRequest::new(&text, source_language, target_language.to_language_code())).unwrap();
+        let body = serde_json::to_string(&GoogleRequestBody::new(
+            &text,
+            source_language,
+            target_language.to_language_code(),
+        ))
+        .unwrap();
 
         let mut runtime = match Runtime::new() {
             Ok(res) => res,
@@ -262,10 +268,10 @@ impl ApiTranslateResponse for TranslateResponse {
     fn get_text(&self) -> String {
         self.data
             .translations
-            .first()
-            .unwrap()
-            .translated_text
-            .clone()
+            .iter()
+            .map(|translation| &translation.translated_text[..])
+            .collect::<Vec<&str>>()
+            .join("\n")
     }
 }
 
