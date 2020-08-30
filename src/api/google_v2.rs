@@ -1,7 +1,7 @@
 /*!
 A module containing the implementation of the [Google Translate API](https://cloud.google.com/translate/docs).
 
-To use it, see the [`Google struct`](struct.GoogleV2.html).
+To use it, see the [`GoogleV2 struct`](struct.GoogleV2.html).
 */
 
 use http::{uri::Uri, Request};
@@ -40,7 +40,7 @@ impl<'a> GoogleV2RequestBody<'a> {
 ///
 /// A struct representing the [Google Translate API](https://cloud.google.com/translate/docs/basic/quickstart).
 ///
-/// This API needs a key, which can be provided at [this page](https://cloud.google.com/translate/docs/setup).
+/// This API needs a key, which can be created at [this page](https://cloud.google.com/translate/docs/setup).
 ///
 /// It implements:
 ///
@@ -60,15 +60,15 @@ impl<'a> GoogleV2RequestBody<'a> {
 /// // construct the struct
 /// let translator = GoogleV2::with_key("<GOOGLE_API_KEY>");
 ///
-/// let text: String = "Hello, my name is Naruto Uzumaki!".to_string();
+/// let text: String = "There is no real ending. It's just the place where you stop the story.".to_string();
 ///
 /// // translate the text, returns a `Result<String, Error>`
-/// let translated_text: String = match translator.translate(text, InputLanguage::Automatic, Language::Japanese) {
+/// let translated_text: String = match translator.translate(text, InputLanguage::Automatic, Language::German) {
 ///     Ok(result) => result,
 ///     Err(err) => panic!("API error, could not translate text : {:#?}", err)
 /// };
 ///
-/// assert_eq!(translated_text, "こんにちは、鳴門のうずまき!")
+/// assert_eq!(translated_text, "Es gibt kein wirkliches Ende. Es ist nur der Ort, an dem Sie die Geschichte stoppen.")
 /// ```
 ///
 /// ### Language detection
@@ -79,7 +79,7 @@ impl<'a> GoogleV2RequestBody<'a> {
 /// use text_translator::*;
 ///
 /// let translator = GoogleV2::with_key("<GOOGLE_API_KEY>");
-/// let text: String = "Bonjour, je m'appelle Naruto Uzumaki!".to_string();
+/// let text: String = "Es gibt kein wirkliches Ende. Es ist nur der Ort, an dem Sie die Geschichte stoppen.".to_string();
 ///
 /// // detect the language, returns a `Result<Option<Language>, Error>`
 /// let detected_language: Language = match translator.detect(text) {
@@ -90,7 +90,7 @@ impl<'a> GoogleV2RequestBody<'a> {
 ///     Err(err) => panic!("API error, could not detect language : {:#?}", err)
 /// };
 ///
-/// assert_eq!(detected_language, Language::French)
+/// assert_eq!(detected_language, Language::German)
 /// ```
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct GoogleV2<'a> {
@@ -147,13 +147,17 @@ impl<'a> Api for GoogleV2<'a> {
         };
 
         // build query
-        let url: String = format!("{}?key={}", GOOGLE_V2_BASE_URL, self.key.unwrap());
+        let url: String = format!(
+            "{}?key={}",
+            GOOGLE_V2_BASE_URL,
+            self.key.ok_or(Error::NoApiKeySet)?
+        );
         let body = serde_json::to_string(&GoogleV2RequestBody::new(
             &text,
             source_language,
             target_language.to_language_code(),
         ))
-        .unwrap();
+        .map_err(|_| Error::CouldNotSerializeJson)?;
 
         let mut runtime = match Runtime::new() {
             Ok(res) => res,
@@ -223,7 +227,10 @@ async fn get_response(uri: Uri, body: String) -> Result<String, Error> {
         .body(Body::from(body))
         .expect("request builder");
 
-    let res = client.request(req).await.unwrap();
+    let res = client
+        .request(req)
+        .await
+        .map_err(|e| Error::RequestError(e.to_string()))?;
 
     match res.status().as_u16() {
         200 => (),
@@ -234,25 +241,28 @@ async fn get_response(uri: Uri, body: String) -> Result<String, Error> {
         }
     };
 
-    let body = to_bytes(res.into_body()).await.unwrap();
+    let body = to_bytes(res.into_body())
+        .await
+        .map_err(|e| Error::RequestError(e.to_string()))?;
     match std::str::from_utf8(&body) {
         Ok(res) => Ok(res.to_string()),
         Err(err) => Err(Error::CouldNotConvertToUtf8Str(err)),
     }
 }
 
+/// Serializable struct of a Google transalte response
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TranslateResponse {
+struct TranslateResponse {
     data: Data,
 }
-
+/// Content of a TranslateResponse
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Data {
+struct Data {
     translations: Vec<Translation>,
 }
-
+/// Text translation in a TranslateResponse
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Translation {
+struct Translation {
     #[serde(rename = "translatedText")]
     translated_text: String,
 }
@@ -268,18 +278,21 @@ impl ApiTranslateResponse for TranslateResponse {
     }
 }
 
+/// Serializable struct of a Google trasnlate detect request
 #[derive(Debug, Serialize, Deserialize)]
-pub struct GoogleDetectResponse {
+struct GoogleDetectResponse {
     data: DetectData,
 }
 
+/// Content of a GoogleDetectResponse
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DetectData {
+struct DetectData {
     detections: Vec<Vec<Detection>>,
 }
 
+/// Text-forat language detected in a GoogleDetectResponse
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Detection {
+struct Detection {
     confidence: i64,
     #[serde(rename = "isReliable")]
     is_reliable: bool,
