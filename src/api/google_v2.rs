@@ -20,13 +20,13 @@ pub const GOOGLE_V2_BASE_URL: &str = "https://translation.googleapis.com/languag
 #[derive(Serialize)]
 struct GoogleV2RequestBody<'a> {
     q: &'a str,
-    source: &'a str,
+    source: Option<&'a str>,
     target: &'a str,
     format: &'static str,
 }
 
 impl<'a> GoogleV2RequestBody<'a> {
-    fn new(q: &'a str, source: &'a str, target: &'a str) -> Self {
+    fn new(q: &'a str, source: Option<&'a str>, target: &'a str) -> Self {
         Self {
             q,
             source,
@@ -134,7 +134,7 @@ impl<'a> Api for GoogleV2<'a> {
         // get translation direction
         let source_language = match source_language {
             InputLanguage::Automatic => {
-                return Err(Error::UnknownLanguageCode(String::from("Not implemented.")))
+                None
             }
             InputLanguage::Defined(source) => {
                 // verify that source languages != target language
@@ -142,7 +142,7 @@ impl<'a> Api for GoogleV2<'a> {
                     return Err(Error::SameLanguages(source, target_language));
                 }
 
-                source.to_language_code()
+                Some(source.to_language_code())
             }
         };
 
