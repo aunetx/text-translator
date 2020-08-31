@@ -4,12 +4,13 @@ A module containing the implementation of the [Google Translate API](https://clo
 To use it, see the [`GoogleV2 struct`](struct.GoogleV2.html).
 */
 
+use async_trait::async_trait;
+
 use http::{uri::Uri, Request};
 use hyper::{body::to_bytes, client::Client, Body};
 use hyper_tls::HttpsConnector;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use tokio::runtime::Runtime;
 
 use super::*;
 
@@ -116,6 +117,7 @@ impl<'a> ApiKey<'a> for GoogleV2<'a> {
     }
 }
 
+#[async_trait]
 impl<'a> Api for GoogleV2<'a> {
     /// Returns a new [`Google`](struct.Google.html) struct without API key.
     ///
@@ -125,7 +127,7 @@ impl<'a> Api for GoogleV2<'a> {
     }
 
     // TODO make `translate` async
-    fn translate(
+    async fn translate(
         &self,
         text: String,
         source_language: InputLanguage,
@@ -133,9 +135,7 @@ impl<'a> Api for GoogleV2<'a> {
     ) -> Result<String, Error> {
         // get translation direction
         let source_language = match source_language {
-            InputLanguage::Automatic => {
-                None
-            }
+            InputLanguage::Automatic => None,
             InputLanguage::Defined(source) => {
                 // verify that source languages != target language
                 if source == target_language {
@@ -159,17 +159,12 @@ impl<'a> Api for GoogleV2<'a> {
         ))
         .map_err(|_| Error::CouldNotSerializeJson)?;
 
-        let mut runtime = match Runtime::new() {
-            Ok(res) => res,
-            Err(_) => return Err(Error::FailedToCreateTokioRuntime),
-        };
-
         let uri = match url.parse::<Uri>() {
             Ok(res) => res,
             Err(_) => return Err(Error::CouldNotParseUri(url)),
         };
 
-        let body = runtime.block_on(get_response(uri, body))?;
+        let body = get_response(uri, body).await?;
 
         let json_body: TranslateResponse = match from_str(body.as_str()) {
             Ok(res) => res,
@@ -180,9 +175,10 @@ impl<'a> Api for GoogleV2<'a> {
     }
 }
 
+#[async_trait]
 impl<'a> ApiDetect for GoogleV2<'a> {
     // TODO make `detect` async
-    fn detect(&self, text: String) -> Result<Option<Language>, Error> {
+    async fn detect(&self, text: String) -> Result<Option<Language>, Error> {
         // build query
         let query = format!(
             "{}/detect?key={}",
@@ -195,17 +191,12 @@ impl<'a> ApiDetect for GoogleV2<'a> {
 
         let body = format!(r#"{{"q":"{}"}}"#, &text);
 
-        let mut runtime = match Runtime::new() {
-            Ok(res) => res,
-            Err(_) => return Err(Error::FailedToCreateTokioRuntime),
-        };
-
         let uri = match query.parse::<Uri>() {
             Ok(res) => res,
             Err(_) => return Err(Error::CouldNotParseUri(query)),
         };
 
-        let body = runtime.block_on(get_response(uri, body))?;
+        let body = get_response(uri, body).await?;
 
         let json_body: GoogleDetectResponse = match from_str(body.as_str()) {
             Ok(res) => res,

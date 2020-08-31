@@ -9,7 +9,6 @@ use hyper::{body::to_bytes, client::Client};
 use hyper_tls::HttpsConnector;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use tokio::runtime::Runtime;
 use urlencoding::encode;
 
 use super::*;
@@ -107,6 +106,7 @@ impl<'a> ApiKey<'a> for Yandex<'a> {
     }
 }
 
+#[async_trait]
 impl<'a> Api for Yandex<'a> {
     /// Returns a new [`Yandex`](struct.Yandex.html) struct without API key.
     ///
@@ -116,7 +116,7 @@ impl<'a> Api for Yandex<'a> {
     }
 
     // TODO make `translate` async
-    fn translate(
+    async fn translate(
         &self,
         text: String,
         source_language: InputLanguage,
@@ -152,17 +152,12 @@ impl<'a> Api for Yandex<'a> {
             encode(text.as_str())
         );
 
-        let mut runtime = match Runtime::new() {
-            Ok(res) => res,
-            Err(_) => return Err(Error::FailedToCreateTokioRuntime),
-        };
-
         let uri = match query.parse::<Uri>() {
             Ok(res) => res,
             Err(_) => return Err(Error::CouldNotParseUri(query)),
         };
 
-        let body = runtime.block_on(get_response(uri))?;
+        let body = get_response(uri).await?;
 
         let json_body: TranslateResponse = match from_str(body.as_str()) {
             Ok(res) => res,
@@ -173,9 +168,10 @@ impl<'a> Api for Yandex<'a> {
     }
 }
 
+#[async_trait]
 impl<'a> ApiDetect for Yandex<'a> {
     // TODO make `detect` async
-    fn detect(&self, text: String) -> Result<Option<Language>, Error> {
+    async fn detect(&self, text: String) -> Result<Option<Language>, Error> {
         // build query
         let mut query: String = String::from(BASE_URL);
         query = format!(
@@ -188,17 +184,12 @@ impl<'a> ApiDetect for Yandex<'a> {
             encode(text.as_str())
         );
 
-        let mut runtime = match Runtime::new() {
-            Ok(res) => res,
-            Err(_) => return Err(Error::FailedToCreateTokioRuntime),
-        };
-
         let uri = match query.parse::<Uri>() {
             Ok(res) => res,
             Err(_) => return Err(Error::CouldNotParseUri(query)),
         };
 
-        let body = runtime.block_on(get_response(uri))?;
+        let body = get_response(uri).await?;
 
         let json_body: DetectResponse = match from_str(body.as_str()) {
             Ok(res) => res,
