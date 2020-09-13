@@ -52,6 +52,8 @@ pub enum Error {
     CouldNotConvertToUtf8Str(std::str::Utf8Error),
     /// Error when deserializing JSON string.
     CouldNotDerializeJson,
+    /// Error when serializing JSON string.
+    CouldNotSerializeJson,
     /// Error when sending API request : no KEY set.
     NoApiKeySet,
     /// Error parsing query to a valid URI.
@@ -64,6 +66,10 @@ pub enum Error {
     UnknownLanguageCode(String),
     /// Yandex API error.
     YandexAPIError(api::yandex::YandexError),
+    /// Google API error
+    GoogleV2APIError(api::google_v2::GoogleV2Error),
+    /// Error in request or response
+    RequestError(String)
 }
 
 impl std::fmt::Display for Error {

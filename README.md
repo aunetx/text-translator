@@ -14,7 +14,7 @@ It wants to implement the following APIs:
 - `[x]` [Yandex.Translate](https://tech.yandex.com/translate/doc/dg/concepts/about-docpage)
   - `[x]` with [API key](https://translate.yandex.com/developers/keys)
   - `[ ]` without key (5_000 chars/translation max)
-- `[ ]` [Google Translate](https://cloud.google.com/translate/docs/)
+- `[x]` [Google Translate](https://cloud.google.com/translate/docs/)
 - `[ ]` [Bing](https://azure.microsoft.com/en-us/services/cognitive-services/translator-text-api/)
 
 ## How to use
@@ -31,11 +31,13 @@ See their respective documentations for more.
 
 ### Examples
 
-For the moment, [only the Yandex API is implemented](https://docs.rs/text-translator/latest/text_translator/struct.Yandex.html).
+For the moment, [only the Google API is working](https://docs.rs/text-translator/latest/text_translator/struct.GoogleV2.html).
+
+There was a change in the Yandex API, the current [implementation](https://docs.rs/text-translator/latest/text_translator/struct.Yandex.html) is not compatible.
 
 Those are examples on how to use it to translate a text, and to detect the input language.
 
-*__Important:__ In order to use those examples, you need to get a free API Key on the [Yandex website](https://translate.yandex.com/developers/keys)*.
+*__Important:__ In order to use those examples, you need to get a free API Key on the [Google website](https://cloud.google.com/translate/docs/setup)*.
 
 #### Text translation
 

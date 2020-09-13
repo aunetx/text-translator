@@ -48,7 +48,7 @@ fn api_translate_and_detect_all_languages() {
 
     Language::iterator().par_bridge().for_each(|language| {
         let res =
-            TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, language.clone());
+            TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, *language);
 
         match res {
             Ok(translation) => match TRANSLATOR.detect(translation) {
