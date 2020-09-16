@@ -1,6 +1,3 @@
-use rayon::iter::ParallelBridge;
-use rayon::prelude::*;
-
 use text_translator::*;
 
 const YANDEX_API_KEY: &str =
@@ -8,27 +5,27 @@ const YANDEX_API_KEY: &str =
 const TRANSLATOR: Yandex = Yandex::with_key(YANDEX_API_KEY);
 const TEXT: &str = "Hello, my name is Naruto Uzumaki!\nI love noodles and fights.";
 
-#[test]
-fn api_single_translate() {
+#[tokio::test]
+async fn api_single_translate() {
     let res = TRANSLATOR.translate(
         TEXT.to_string(),
         InputLanguage::Defined(Language::English),
         Language::French,
     );
 
-    res.unwrap();
+    res.await.unwrap();
 }
 
-#[test]
-fn api_single_translate_automatic_language() {
+#[tokio::test]
+async fn api_single_translate_automatic_language() {
     let res = TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, Language::French);
 
-    res.unwrap();
+    res.await.unwrap();
 }
 
-#[test]
-fn api_single_detect_language() {
-    let res = TRANSLATOR.detect(TEXT.to_string());
+#[tokio::test]
+async fn api_single_detect_language() {
+    let res = TRANSLATOR.detect(TEXT.to_string()).await;
 
     match res {
         Ok(response) => match response {
@@ -41,48 +38,60 @@ fn api_single_detect_language() {
     }
 }
 
-#[test]
-fn api_translate_and_detect_all_languages() {
-    static mut HARD_FAILED_TASKS: u32 = 0;
-    static mut SOFT_FAILED_TASKS: u32 = 0;
+#[tokio::test]
+async fn api_translate_and_detect_all_languages() {
+    let fails = Language::iterator()
+        .cloned()
+        .map(|language| async move {
+            let mut hard_failed_tasks = 0u32;
+            let mut soft_failed_tasks = 0u32;
 
-    Language::iterator().par_bridge().for_each(|language| {
-        let res =
-            TRANSLATOR.translate(TEXT.to_string(), InputLanguage::Automatic, *language);
+            let res = TRANSLATOR
+                .translate(TEXT.to_string(), InputLanguage::Automatic, language)
+                .await;
 
-        match res {
-            Ok(translation) => match TRANSLATOR.detect(translation) {
-                Ok(val) => match val {
-                    Some(lang) => {
-                        if lang == *language {
-                            println!("Language {:?} well detected", language)
-                        } else {
-                            println!(
-                                "Language {:?} not detected correctly : detected {:?}",
-                                language, lang
-                            );
-                            unsafe { SOFT_FAILED_TASKS += 1 }
+            match res {
+                Ok(translation) => match TRANSLATOR.detect(translation).await {
+                    Ok(val) => match val {
+                        Some(lang) => {
+                            if lang == language {
+                                println!("Language {:?} well detected", &language)
+                            } else {
+                                println!(
+                                    "Language {:?} not detected correctly : detected {:?}",
+                                    &language, lang
+                                );
+                                soft_failed_tasks += 1;
+                            }
                         }
-                    }
-                    None => {
-                        println!("No language detected for {:?}", language);
-                        unsafe { SOFT_FAILED_TASKS += 1 }
+                        None => {
+                            println!("No language detected for {:?}", &language);
+                            soft_failed_tasks += 1;
+                        }
+                    },
+                    Err(err) => {
+                        println!("Could not detect {:?} : {:#?}", &language, err);
+                        hard_failed_tasks += 1;
                     }
                 },
                 Err(err) => {
-                    println!("Could not detect {:?} : {:#?}", language, err);
-                    unsafe { HARD_FAILED_TASKS += 1 }
+                    println!("Could not translate to {:?} : {:#?}", &language, err);
+                    hard_failed_tasks += 1;
                 }
-            },
-            Err(err) => {
-                println!("Could not translate to {:?} : {:#?}", language, err);
-                unsafe { HARD_FAILED_TASKS += 1 }
             }
-        }
-    });
+
+            return (hard_failed_tasks, soft_failed_tasks);
+        })
+        .collect::<Vec<_>>();
+
+    let (hard_failed_tasks, soft_failed_tasks) = futures::future::join_all(fails)
+        .await
+        .iter()
+        .fold((0u32, 0u32), |fails, new_fails| {
+            (fails.0 + new_fails.0, fails.1 + new_fails.1)
+        });
 
     // these are the errors due to the API, and not only incorrect detection/translation: fail if >0
-    let hard_failed_tasks = unsafe { HARD_FAILED_TASKS };
     if hard_failed_tasks > 0 {
         panic!("{} API errors, test failed", hard_failed_tasks)
     } else {
@@ -90,7 +99,6 @@ fn api_translate_and_detect_all_languages() {
     }
 
     // these are the incorrect detections, but where API worked: fail if >30
-    let soft_failed_tasks = unsafe { SOFT_FAILED_TASKS };
     if soft_failed_tasks > 30 {
         panic!(
             "{} > 30 incorrect detections, test failed",
@@ -104,8 +112,8 @@ fn api_translate_and_detect_all_languages() {
     }
 }
 
-#[test]
-fn api_translate_long_text() {
+#[tokio::test]
+async fn api_translate_long_text() {
     const LONG_TEXT: &str = r#"Bannis ! bannis ! bannis ! c'est là la destinée.
 Ce qu'apporté le flux sera dans la journée
 Repris par le reflux.
@@ -151,11 +159,13 @@ Au fond de nos tombeaux !
 
 Victor Hugo - Les Châtiments "#;
 
-    let res = TRANSLATOR.translate(
-        LONG_TEXT.to_string(),
-        InputLanguage::Automatic,
-        Language::English,
-    );
+    let res = TRANSLATOR
+        .translate(
+            LONG_TEXT.to_string(),
+            InputLanguage::Automatic,
+            Language::English,
+        )
+        .await;
 
     match res {
         Ok(translation) => println!("Translated to English : {}", translation),
@@ -165,8 +175,8 @@ Victor Hugo - Les Châtiments "#;
     }
 }
 
-#[test]
-fn api_translate_too_long_text() {
+#[tokio::test]
+async fn api_translate_too_long_text() {
     let mut too_long_text = String::from(
         r#"
 I
@@ -346,7 +356,9 @@ Dieu seul parle aux axes des cieux.
     too_long_text.push_str(&too_long_text.clone());
     too_long_text.push_str(&too_long_text.clone());
 
-    let res = TRANSLATOR.translate(too_long_text, InputLanguage::Automatic, Language::English);
+    let res = TRANSLATOR
+        .translate(too_long_text, InputLanguage::Automatic, Language::English)
+        .await;
 
     match res {
         Ok(_) => {

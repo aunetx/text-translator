@@ -1,4 +1,5 @@
 use crate::*;
+use async_trait::async_trait;
 
 pub mod yandex;
 pub use yandex::Yandex;
@@ -9,6 +10,7 @@ pub use google_v2::GoogleV2;
 /// A trait defining a translate API.
 ///
 /// Implements `new()` to return a new API, and `translate()` to translate a text.
+#[async_trait]
 pub trait Api {
     /// Returns a new API struct, without initiating it.
     fn new() -> Self;
@@ -21,7 +23,7 @@ pub trait Api {
     /// - `target_language`: [`Language`](../enum.Language.html), representing a defined language to output to.
     ///
     /// Returns a `Result` containing either a `String` with the translated text, or an [`Error`](../enum.Error.html) that happened during the process.
-    fn translate(
+    async fn translate(
         &self,
         text: String,
         source_language: InputLanguage,
@@ -30,6 +32,7 @@ pub trait Api {
 }
 
 /// Extends [`Api`](trait.Api.html) to implement language detection.
+#[async_trait]
 pub trait ApiDetect: Api {
     /// Detect the language of the selected text.
     ///
@@ -44,7 +47,7 @@ pub trait ApiDetect: Api {
     /// - if the API was able to detect the language, it will result in an `Ok(Some(detected_language))`.
     /// - if it failed to detect, it will be an `Ok(None)`.
     /// - if an error preventing the API to do the detection, it will return an error: `Error(returned_error)`.
-    fn detect(&self, text: String) -> Result<Option<Language>, Error>;
+    async fn detect(&self, text: String) -> Result<Option<Language>, Error>;
 }
 
 /// Extends [`Api`](trait.Api.html), where the API needs to have an API Key.
